@@ -1,0 +1,31 @@
+{
+    "messageQueue": {
+      "protocol": "amqp",
+      "hostname": "127.0.0.1",
+      "port": 5672,
+      "username": "guest",
+      "password": "guest",
+      "vhost": "/",
+      "heartbeat": 120,
+      "prefetch": 200
+    },
+    "rabbitmq": {
+      "attemptTime": 1000,
+      "queues": {
+        "sendAndForget": ["video_converter"]
+      }
+    },
+    "ftp": {
+      "host": "ftpstt.dof6.com",
+      "port": 22,
+      "user": "AppCampusDev",
+      "pass": "Keys82!Camp16"
+    },
+    "ftp_test": {
+      "rootPath": "/sftpuser",
+      "host": "127.0.0.1",
+      "port": "22",
+      "username": "sftpuser",
+      "password": "my-secret-pw"
+    }
+  }
