@@ -15,6 +15,10 @@
         "sendAndForget": ["video_converter"]
       }
     },
+    "mediaOptions": {
+      "path": "./media",
+      "protocol": "http://"
+    },
     "ftp": {
       "host": "ftpstt.dof6.com",
       "port": 22,
