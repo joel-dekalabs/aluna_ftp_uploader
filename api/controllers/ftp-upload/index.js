@@ -9,7 +9,7 @@ const defaultMediaProtocol = 'http://'
 const validStatusCode = 200
 
 function uploadFile(config, fullFileName, fileName) {
-  let ftpUploadOk = true
+  const ftpUploadOk = true
   const data = fs.createReadStream(fullFileName)
   const sftp = new sftpClient()
   const remote = `${config.ftp_test.rootPath}/${fileName}`
@@ -25,17 +25,6 @@ function uploadFile(config, fullFileName, fileName) {
   return ftpUploadOk
 }
 
-function listRemoteFiles(config) {
-  const sftp = new sftpClient()
-  sftp.connect(config.ftp_test).then(() => {
-    return sftp.list(config.ftp_test.rootPath)
-  }).then(data => {
-    console.log(data, 'the data info')
-  }).catch(err => {
-    console.log(err, 'catch error')
-  })
-}
-
 function createMediaDir(config) {
   const dir = config && config.mediaOptions && config.mediaOptions.path ? config.mediaOptions.path : `${projectPath}/media`
   if (!fs.existsSync(dir)){
@@ -46,7 +35,7 @@ function createMediaDir(config) {
   return dir
 }
 
-function mediaDownload(url, dest, fullFileName, cb) {
+function mediaDownload(url, fullFileName, cb) {
   let processOk = true
   const file = fs.createWriteStream(fullFileName)
   http.get(url, (response) => {
@@ -61,7 +50,7 @@ function mediaDownload(url, dest, fullFileName, cb) {
       cb(!processOk)
     }
   }).on('error', (err) => { 
-    fs.unlink(dest)
+    fs.unlink(fullFileName)
     if (cb) { 
       console.log(`Error downloading file: ${err.message}`)
       cb(!processOk)
@@ -79,8 +68,12 @@ function validateUrl(config, url) {
   return url
 }
 
-// function deleteFile(path) {
-// }
+function deleteFile(filePath) {
+  fs.unlink(filePath, (err) => {
+    if (err) throw err;
+    console.log(`${filePath} was deleted`);
+  })
+}
 
 function upload(params) {
   const url = params && params.file ? params.file : null
@@ -92,16 +85,16 @@ function upload(params) {
   const fileName = url.substring(url.lastIndexOf('/') + 1, url.length)
   const mediaPath = createMediaDir(config)
   const fullFileName = `${mediaPath}/${id}_${fileName}`
-  mediaDownload(url, mediaPath, fullFileName, (processOk) => {
+  mediaDownload(url, fullFileName, (processOk) => {
     if (processOk) {
       if (uploadFile(config, fullFileName, fileName)) {
         console.log(`File ${fileName} uploaded to sftp server`)
-        // deleteFile(fullFileName)
+        deleteFile(fullFileName)
       } else {
         console.log(`Unable to upload ${fileName} to sftp server`)
       }
     } else {
-      console.log(`Problem uploading ${fileName} to sftp server`)
+      console.log(`Problem with resource ${url} to sftp server`)
     }
   })
 }
