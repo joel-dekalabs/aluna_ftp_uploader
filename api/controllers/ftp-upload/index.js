@@ -7,6 +7,10 @@ const fs = require('fs')
 
 const defaultMediaProtocol = 'http://'
 const validStatusCode = 200
+const FTP_UPLOAD_STATUSES = {
+  UPLOAD_OK: 'ftp_upload_ok',
+  UPLOAD_FAILED: 'ftp_upload_failed' 
+}
 
 function uploadFile(config, fullFileName, fileName) {
   const ftpUploadOk = true
@@ -69,16 +73,32 @@ function validateUrl(config, url) {
 }
 
 function deleteFile(filePath) {
+  const deletOk = true
   fs.unlink(filePath, (err) => {
-    if (err) throw err;
-    console.log(`${filePath} was deleted`);
+    if (err) {
+      return !deletOk
+    }
+
+    return deletOk
   })
 }
 
+function updateDb(status, params, fullFileName) {
+  const date = new Date(Date.now())
+  return global.database.components_status_statuses.add(date, status)
+  .then(status_id => global.database[`${params.resource_type}s_components`].add(status_id, params.resource_id, 3))
+  .then(() => {
+    console.log(`${fullFileName} ${params.resource_id} (${params.resource_type}) ${status}`)
+  })
+}
+
+
 function upload(params) {
+  let validDbUpdate = true
   const url = params && params.file ? params.file : null
   const id = params && params.resource_id ? `${params.resource_id}` : null
   if (!validateUrl(config, url) && !id) {
+    updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, fullFileName)
     return
   }
 
@@ -89,14 +109,27 @@ function upload(params) {
     if (processOk) {
       if (uploadFile(config, fullFileName, fileName)) {
         console.log(`File ${fileName} uploaded to sftp server`)
-        deleteFile(fullFileName)
+        if (deleteFile(fullFileName)) {
+          console.log(`${fullFileName} was deleted`)
+        } else {
+          validDbUpdate = false
+        }
       } else {
+        validDbUpdate = false
         console.log(`Unable to upload ${fileName} to sftp server`)
       }
     } else {
+      validDbUpdate = false
       console.log(`Problem with resource ${url} to sftp server`)
     }
   })
+
+  if (!validDbUpdate) {
+    updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, fullFileName)
+    return
+  }
+
+  updateDb(FTP_UPLOAD_STATUSES.UPLOAD_OK, params, fullFileName)
 }
 
 module.exports = {

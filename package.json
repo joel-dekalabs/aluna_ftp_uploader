@@ -1,7 +1,7 @@
 {
   "name": "aluna_ftp_uploader",
   "version": "1.0.0",
-  "description": "",
+  "description": "Aluna ftp uploader",
   "main": "index.js",
   "dependencies": {
     "@xtreamr/ds_rabbitmq": "^1.1.0",
@@ -17,7 +17,7 @@
     "url": "git+https://github.com/XTreamr/aluna_ftp_uploader.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Telefónica I+D",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/XTreamr/aluna_ftp_uploader/issues"

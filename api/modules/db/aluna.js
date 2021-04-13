@@ -49,6 +49,36 @@ class AlunaDB extends DB {
       )
     }
   }
+
+  get podcast_components() {
+    return {
+      add: (status_id, podcast_id, order) => this.query(
+        'INSERT INTO podcast_components (`field`, `order`, `component_type`, `component_id`, `podcast_id`) VALUES(?,?,?,?,?)',
+        [
+          'status',
+          order,
+          'components_status_statuses',
+          status_id,
+          podcast_id
+        ]
+      )
+    }
+  }
+
+  get courses_components() {
+    return {
+      add: (status_id, course_id, order) => this.query(
+        'INSERT INTO courses_components (`field`, `order`, `component_type`, `component_id`, `course_id`) VALUES(?,?,?,?,?)',
+        [
+          'status',
+          order,
+          'components_status_statuses',
+          status_id,
+          course_id
+        ]
+      )
+    }
+  }
 }
 
 module.exports = AlunaDB
