@@ -1,7 +1,7 @@
 'use strict'
 
 const client = require('@xtreamr/ds_rabbitmq').client
-const config = require(process.cwd() + '/config/default')
+const config = require('config')
 const ftpUpload = require(process.cwd() + '/api/controllers/ftp-upload')
 
 function convert(params) {

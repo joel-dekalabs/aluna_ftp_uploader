@@ -1,6 +1,6 @@
 'use strict'
 const projectPath = `${process.cwd()}`
-const config = require(projectPath + '/config/default')
+const config = require('config')
 const sftpClient = require('ssh2-sftp-client')
 const http = require('http')
 const fs = require('fs')
@@ -16,8 +16,8 @@ function uploadFile(config, fullFileName, fileName) {
   const ftpUploadOk = true
   const data = fs.createReadStream(fullFileName)
   const sftp = new sftpClient()
-  const remote = `${config.ftp_test.rootPath}/${fileName}`
-  sftp.connect(config.ftp_test).then(() => {
+  const remote = `${config.ftp.rootPath}/${fileName}`
+  sftp.connect(config.ftp).then(() => {
     return sftp.put(data, remote)
   }).then(() => {
     return sftp.end()
