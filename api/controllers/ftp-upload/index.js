@@ -2,7 +2,7 @@
 const projectPath = `${process.cwd()}`
 const config = require('config')
 const sftpClient = require('ssh2-sftp-client')
-const http = require('http')
+const request = require('superagent')
 const fs = require('fs')
 
 const defaultMediaProtocol = 'http://'
@@ -12,21 +12,14 @@ const FTP_UPLOAD_STATUSES = {
   UPLOAD_FAILED: 'ftp_upload_failed' 
 }
 
-function uploadFile(config, fullFileName, fileName) {
-  const ftpUploadOk = true
+async function uploadFile(config, fullFileName, fileName) {
   const data = fs.createReadStream(fullFileName)
   const sftp = new sftpClient()
   const remote = `${config.ftp.rootPath}/${fileName}`
-  sftp.connect(config.ftp).then(() => {
-    return sftp.put(data, remote)
-  }).then(() => {
-    return sftp.end()
-  }).catch(err => {
-    console.error(err.message)
-    return !ftpUploadOk
-  })
-
-  return ftpUploadOk
+  await sftp.connect(config.ftp)
+  await sftp.put(data, remote)
+  const connectionResult = await sftp.end()
+  return connectionResult
 }
 
 function createMediaDir(config) {
@@ -39,26 +32,35 @@ function createMediaDir(config) {
   return dir
 }
 
-function mediaDownload(url, fullFileName, cb) {
-  let processOk = true
-  const file = fs.createWriteStream(fullFileName)
-  http.get(url, (response) => {
-    if (response.statusCode === validStatusCode) {
-      response.pipe(file)
-      file.on('finish', () => {
-        console.log(`File ${url} downloaded succesfully: HTTP STATUS CODE ${response.statusCode}`)
-        file.close(cb(processOk))
-      })
+function mediaProcess(url, fullFileName, fileName, params) {
+  let jobStatus = FTP_UPLOAD_STATUSES.UPLOAD_FAILED
+  const stream = fs.createWriteStream(fullFileName)
+  const req = request.get(url)
+  req.pipe(stream)
+  
+  stream.on('error', () => {
+    console.log(`File ${url} errored during pipe`)
+    jobStatus = FTP_UPLOAD_STATUSES.UPLOAD_FAILED
+  })
+  
+  stream.on('finish', async () => {
+    if (req.response && req.response.statusCode === validStatusCode) {
+      console.log(`File ${url} downloaded succesfully: HTTP STATUS CODE ${req.response.statusCode}`)
+      try {
+        const ftpResult = await uploadFile(config, fullFileName, fileName)
+        if (ftpResult) {
+          jobStatus = FTP_UPLOAD_STATUSES.UPLOAD_OK
+        }
+      } catch (error) {
+        console.log(error.message)
+        jobStatus = FTP_UPLOAD_STATUSES.UPLOAD_FAILED
+      }
     } else {
-      console.log(`Error performing request: HTTP STATUS CODE ${response.statusCode}`)
-      cb(!processOk)
+      console.log(`Error performing request to url ${url}: HTTP STATUS CODE ${req.response.statusCode}`)
     }
-  }).on('error', (err) => { 
-    fs.unlink(fullFileName)
-    if (cb) { 
-      console.log(`Error downloading file: ${err.message}`)
-      cb(!processOk)
-    }
+
+    await updateDb(jobStatus, params, url)
+    deleteFile(fullFileName)
   })
 }
 
@@ -73,63 +75,36 @@ function validateUrl(config, url) {
 }
 
 function deleteFile(filePath) {
-  const deletOk = true
   fs.unlink(filePath, (err) => {
     if (err) {
-      return !deletOk
+      console.log(err)
+      return
     }
 
-    return deletOk
+    console.log(`${filePath} deleted in local media folder`)
   })
 }
 
-function updateDb(status, params, fullFileName) {
+async function updateDb(status, params, fullFileName) {
   const date = new Date(Date.now())
-  return global.database.components_status_statuses.add(date, status)
-  .then(status_id => global.database[`${params.resource_type}s_components`].add(status_id, params.resource_id, 3))
-  .then(() => {
-    console.log(`${fullFileName} ${params.resource_id} (${params.resource_type}) ${status}`)
-  })
+  const statusId = await global.database.components_status_statuses.add(date, status)
+  const result = await global.database[`${params.resource_type}s_components`].add(statusId, params.resource_id, 3)
+  console.log(`${fullFileName} ${params.resource_id} (${params.resource_type}) ${status}`)
+  return result
 }
 
-
-function upload(params) {
-  let validDbUpdate = true
+async function upload(params) {
   const url = params && params.file ? params.file : null
   const id = params && params.resource_id ? `${params.resource_id}` : null
-  if (!validateUrl(config, url) && !id) {
-    updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, fullFileName)
+  if (!validateUrl(config, url) || !id) {
+    await updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, url)
     return
   }
 
   const fileName = url.substring(url.lastIndexOf('/') + 1, url.length)
   const mediaPath = createMediaDir(config)
   const fullFileName = `${mediaPath}/${id}_${fileName}`
-  mediaDownload(url, fullFileName, (processOk) => {
-    if (processOk) {
-      if (uploadFile(config, fullFileName, fileName)) {
-        console.log(`File ${fileName} uploaded to sftp server`)
-        if (deleteFile(fullFileName)) {
-          console.log(`${fullFileName} was deleted`)
-        } else {
-          validDbUpdate = false
-        }
-      } else {
-        validDbUpdate = false
-        console.log(`Unable to upload ${fileName} to sftp server`)
-      }
-    } else {
-      validDbUpdate = false
-      console.log(`Problem with resource ${url} to sftp server`)
-    }
-  })
-
-  if (!validDbUpdate) {
-    updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, fullFileName)
-    return
-  }
-
-  updateDb(FTP_UPLOAD_STATUSES.UPLOAD_OK, params, fullFileName)
+  mediaProcess(url, fullFileName, fileName, params)
 }
 
 module.exports = {
