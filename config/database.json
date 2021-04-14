@@ -1,0 +1,8 @@
+{
+  "host": "localhost",
+  "port": 3307,
+  "user": "root",
+  "password": "my-secret-pw",
+  "database": "aluna_strapi_dev",
+  "ssl": false
+}

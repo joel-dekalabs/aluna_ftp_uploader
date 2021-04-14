@@ -1,0 +1,26 @@
+{
+  "name": "aluna_ftp_uploader",
+  "version": "1.0.0",
+  "description": "Aluna ftp uploader",
+  "main": "index.js",
+  "dependencies": {
+    "@xtreamr/ds_rabbitmq": "^1.1.0",
+    "mysql": "^2.18.1",
+    "ssh2-sftp-client": "^6.0.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node api/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XTreamr/aluna_ftp_uploader.git"
+  },
+  "keywords": [],
+  "author": "Telefónica I+D",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/XTreamr/aluna_ftp_uploader/issues"
+  },
+  "homepage": "https://github.com/XTreamr/aluna_ftp_uploader#readme"
+}
