@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "@xtreamr/ds_rabbitmq": "^1.1.0",
+    "config": "^3.3.6",
     "mysql": "^2.18.1",
     "ssh2-sftp-client": "^6.0.1"
   },

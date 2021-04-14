@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require(process.cwd() + '/config/database')
+const config = require('config').database
 const aluna_db = require('./aluna');
 
 module.exports = {

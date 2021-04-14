@@ -1,6 +1,6 @@
 'use strict';
 
-const config = require(process.cwd() + '/config/default')
+const config = require('config')
 
 console.log(`Starting ${require('../package').description} server ${require('../package').version} ...`);
 
