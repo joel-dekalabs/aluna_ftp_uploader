@@ -29,9 +29,9 @@
     },
     "ftp": {
       "rootPath": "/sftpuser",
-      "host": "ftpstt.dof6.com",
+      "host": "my-sftp-server",
       "port": "22",
-      "username": "AppCampusDev",
-      "password": "Keys82!Camp16"
+      "username": "my-sftp-user",
+      "password": "my-sftp-password"
     }
   }
