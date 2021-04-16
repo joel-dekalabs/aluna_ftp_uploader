@@ -12,9 +12,18 @@ const FTP_UPLOAD_STATUSES = {
   UPLOAD_FAILED: 'ftp_upload_failed' 
 }
 
-async function uploadFile(config, fullFileName, fileName) {
+function getFtpFileName(params) {
+  const extension = params.file.substring(params.file.lastIndexOf("."), params.file.length)
+  let fileName = `${params.resource_type}${params.resource_id}${params.type}`
+  fileName = fileName.slice(0, -1)
+  fileName = `${fileName}${extension}`
+  return fileName
+}
+
+async function uploadFile(config, fullFileName, params) {
   const data = fs.createReadStream(fullFileName)
   const sftp = new sftpClient()
+  const fileName = getFtpFileName(params)
   const remote = `${config.ftp.rootPath}/${fileName}`
   await sftp.connect(config.ftp)
   await sftp.put(data, remote)
@@ -47,7 +56,7 @@ function mediaProcess(url, fullFileName, fileName, params) {
     if (req.response && req.response.statusCode === validStatusCode) {
       console.log(`File ${url} downloaded succesfully: HTTP STATUS CODE ${req.response.statusCode}`)
       try {
-        const ftpResult = await uploadFile(config, fullFileName, fileName)
+        const ftpResult = await uploadFile(config, fullFileName, params)
         if (ftpResult) {
           jobStatus = FTP_UPLOAD_STATUSES.UPLOAD_OK
         }
@@ -96,7 +105,9 @@ async function updateDb(status, params, fullFileName) {
 async function upload(params) {
   const url = params && params.file ? params.file : null
   const id = params && params.resource_id ? `${params.resource_id}` : null
-  if (!validateUrl(config, url) || !id) {
+  const type = params && params.type ? `${params.type}` : null
+  const resourceType = params && params.resource_type ? `${params.resource_type}` : null
+  if (!validateUrl(config, url) || !id || !type || !resourceType) {
     await updateDb(FTP_UPLOAD_STATUSES.UPLOAD_FAILED, params, url)
     return
   }
